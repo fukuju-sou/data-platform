@@ -1,0 +1,11 @@
+card_number,customer_id,name,email,address
+9999000000000001,C001,Taro Yamada,taro@example.com,Tokyo
+9999000000000002,C002,Hanako Suzuki,hanako@example.com,Osaka
+9999000000000003,C003,Ichiro Tanaka,ichiro@example.com,Nagoya
+9999000000000004,C004,Yuki Sato,yuki@example.com,Fukuoka
+9999000000000005,C005,Ken Ito,ken@example.com,Sapporo
+9999000000000006,C006,Aya Watanabe,aya@example.com,Yokohama
+9999000000000007,C007,Shota Kobayashi,shota@example.com,Sendai
+9999000000000008,C008,Mai Nakamura,mai@example.com,Kobe
+9999000000000009,C009,Daichi Kato,daichi@example.com,Kyoto
+9999000000000010,C010,Emi Yoshida,emi@example.com,Hiroshima
