@@ -8,7 +8,10 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-MASTER_FILE = BASE_DIR / "raw" / "customer_master" / "customers.csv"
+# Customer master
+MASTER_FILE = BASE_DIR / "raw" / "customer_master" / "customer.csv"
+
+# Card transaction output
 OUTPUT_DIR = BASE_DIR / "raw" / "card_transactions"
 OUTPUT_FILE = OUTPUT_DIR / "transactions.csv"
 
@@ -27,15 +30,24 @@ PRODUCTS = [
 def load_cards():
     with open(MASTER_FILE, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        return [row["card_number"] for row in reader]
+
+        cards = []
+
+        for row in reader:
+            cards.append(row["card_number"])
+
+        return cards
 
 
 def generate_transactions(cards, count=20):
     transactions = []
 
     for transaction_id in range(1, count + 1):
+
         card_number = random.choice(cards)
+
         category, product, unit_price = random.choice(PRODUCTS)
+
         quantity = random.randint(1, 5)
 
         transactions.append({
@@ -53,7 +65,14 @@ def generate_transactions(cards, count=20):
 
 
 def main():
+
+    print(f"Master : {MASTER_FILE}")
+    print(f"Output : {OUTPUT_FILE}")
+
     cards = load_cards()
+
+    if not cards:
+        raise RuntimeError("No card information found in customer.csv")
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -77,7 +96,10 @@ def main():
             "amount"
         ]
 
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(
+            f,
+            fieldnames=fieldnames
+        )
 
         writer.writeheader()
         writer.writerows(transactions)

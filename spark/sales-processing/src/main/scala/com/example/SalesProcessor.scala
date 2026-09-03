@@ -8,95 +8,167 @@ object SalesProcessor {
   def main(args: Array[String]): Unit = {
 
     // --------------------------------
-    // 1. 引数チェック
+    // 1. Path
     // --------------------------------
-    if (args.length != 2) {
-      System.err.println(
-        "Usage: SalesProcessor <input_path> <output_path>"
-      )
-      System.exit(1)
-    }
 
-    val inputPath = args(0)
-    val outputPath = args(1)
+    val transactionPath =
+      "../../raw/card_transactions"
 
-    println(s"Input : $inputPath")
-    println(s"Output: $outputPath")
+    val customerPath =
+      "../../raw/customer_master/customer.csv"
 
     // --------------------------------
-    // 2. SparkSession作成
+    // 2. ClickHouse settings
     // --------------------------------
+
+    val clickhouseUrl =
+      "jdbc:clickhouse://localhost:8123/data_platform"
+
+    val clickhouseTable =
+      "card_transactions"
+
+    val clickhouseUser =
+      "default"
+
+    val clickhousePassword =
+      ""
+
+    println("====================================")
+    println("Card Transaction Processing")
+    println("====================================")
+
+    println(s"Transaction : $transactionPath")
+    println(s"Customer    : $customerPath")
+    println(s"ClickHouse  : $clickhouseUrl")
+    println(s"Table       : $clickhouseTable")
+
+    // --------------------------------
+    // 3. SparkSession
+    // --------------------------------
+
     val spark = SparkSession.builder()
-      .appName("SalesProcessor")
+      .appName("CardTransactionProcessor")
       .master("local[*]")
       .getOrCreate()
 
     try {
 
       // --------------------------------
-      // 3. CSV読み込み
+      // 4. Read transaction CSV
       // --------------------------------
-      val salesDF = spark.read
+
+      val transactionDF = spark.read
         .option("header", "true")
         .option("inferSchema", "true")
-        .csv(inputPath)
+        .csv(transactionPath)
 
       println()
-      println("=== Input Data ===")
-      salesDF.show(false)
+      println("=== Transaction Data ===")
+
+      transactionDF.show(false)
 
       println()
-      println("=== Input Schema ===")
-      salesDF.printSchema()
+      println("=== Transaction Schema ===")
+
+      transactionDF.printSchema()
 
       // --------------------------------
-      // 4. 売上金額を計算
+      // 5. Read customer master
       // --------------------------------
-      val processedDF = salesDF
-        .withColumn(
-          "total_price",
-          col("price") * col("quantity")
-        )
 
-      println()
-      println("=== Processed Data ===")
-      processedDF.show(false)
-
-      // --------------------------------
-      // 5. categoryごとに集計
-      // --------------------------------
-      val summaryDF = processedDF
-        .groupBy("category")
-        .agg(
-          sum("total_price").alias("total_sales"),
-          sum("quantity").alias("total_quantity")
-        )
-        .orderBy("category")
-
-      println()
-      println("=== Summary ===")
-      summaryDF.show(false)
-
-      // --------------------------------
-      // 6. CSVとして出力
-      // --------------------------------
-      summaryDF
-        .coalesce(1)
-        .write
-        .mode("overwrite")
+      val customerDF = spark.read
         .option("header", "true")
-        .csv(outputPath)
+        .option("inferSchema", "false")
+        .csv(customerPath)
 
       println()
-      println(s"=== Output completed ===")
-      println(s"Output written to: $outputPath")
+      println("=== Customer Master ===")
+
+      customerDF.show(false)
+
+      println()
+      println("=== Customer Schema ===")
+
+      customerDF.printSchema()
+
+      // --------------------------------
+      // 6. Join
+      // --------------------------------
+
+      val mergedDF = transactionDF
+        .join(
+          customerDF,
+          Seq("card_number"),
+          "inner"
+        )
+        .select(
+          col("transaction_id"),
+          col("card_number"),
+          to_timestamp(
+            col("purchase_date"),
+            "yyyy-MM-dd HH:mm:ss"
+          ).alias("purchase_date"),
+          col("category"),
+          col("product"),
+          col("unit_price").cast("long"),
+          col("quantity").cast("long"),
+          col("amount").cast("long"),
+          col("customer_id"),
+          col("name"),
+          col("email"),
+          col("address")
+        )
+
+      // --------------------------------
+      // 7. Display merged data
+      // --------------------------------
+
+      println()
+      println("=== Merged Data ===")
+
+      mergedDF.show(false)
+
+      println()
+      println("=== Merged Schema ===")
+
+      mergedDF.printSchema()
+
+      // --------------------------------
+      // 8. Record count
+      // --------------------------------
+
+      val count = mergedDF.count()
+
+      println()
+      println(s"Merged records: $count")
+
+      // --------------------------------
+      // 9. Write to ClickHouse
+      // --------------------------------
+
+      println()
+      println("=== Writing to ClickHouse ===")
+
+      mergedDF.write
+        .format("jdbc")
+        .option("url", clickhouseUrl)
+        .option("dbtable", clickhouseTable)
+        .option("user", clickhouseUser)
+        .option("password", clickhousePassword)
+        .option("driver", "com.clickhouse.jdbc.ClickHouseDriver")
+        .option("batchsize", "1000")
+        .mode("append")
+        .save()
+
+      println()
+      println("====================================")
+      println("Completed successfully")
+      println("====================================")
 
     } finally {
 
-      // --------------------------------
-      // 7. Spark終了
-      // --------------------------------
       spark.stop()
+
     }
   }
 }
