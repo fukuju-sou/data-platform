@@ -99,7 +99,6 @@ services:
       --conf spark.driver.host=spark-driver
       --conf spark.driver.bindAddress=0.0.0.0
       --conf spark.ui.port=4040
-      --packages com.clickhouse:clickhouse-jdbc:0.9.8
       /opt/spark-apps/sales-processing_2.12-1.0.0.jar
 
 
