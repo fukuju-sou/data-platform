@@ -48,7 +48,7 @@ object SalesProcessor {
 
     val spark = SparkSession.builder()
       .appName("CardTransactionProcessor")
-      .master("local[*]")
+      .master("spark://spark-master:7077")
       .getOrCreate()
 
     try {
