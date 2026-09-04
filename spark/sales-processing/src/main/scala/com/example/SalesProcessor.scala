@@ -12,17 +12,17 @@ object SalesProcessor {
     // --------------------------------
 
     val transactionPath =
-      "../../raw/card_transactions"
+    "/opt/data/raw/card_transactions"
 
     val customerPath =
-      "../../raw/customer_master/customer.csv"
+    "/opt/data/raw/customer_master/customer.csv"
 
     // --------------------------------
     // 2. ClickHouse settings
     // --------------------------------
 
     val clickhouseUrl =
-      "jdbc:clickhouse://localhost:8123/data_platform"
+    "jdbc:clickhouse://clickhouse:8123/data_platform"
 
     val clickhouseTable =
       "card_transactions"
